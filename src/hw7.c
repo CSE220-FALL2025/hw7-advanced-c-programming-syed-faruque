@@ -76,7 +76,6 @@ matrix_sf* add_mats_sf(const matrix_sf *mat1, const matrix_sf *mat2) {
     // extract important values
     unsigned int sum_rows = mat1->num_rows;
     unsigned int sum_cols = mat1->num_cols;
-    int sum = 0;
 
     // initialize the new sum matrix
     matrix_sf *sum_matrix = malloc(sizeof(matrix_sf) + sum_rows * sum_cols * sizeof(int));
@@ -277,12 +276,18 @@ matrix_sf* evaluate_expr_sf(char name, char *expr, bst_sf *root) {
             matrix_sf *mat2 = stack[stack_top--];
             matrix_sf *mat1 = stack[stack_top--];
             matrix_sf *mult_matrix = mult_mats_sf(mat1, mat2);
+            // free temporary matrices
+            if (!isupper(mat1->name)) free(mat1);
+            if (!isupper(mat2->name)) free(mat2);
             stack[++stack_top] = mult_matrix;
         }
         else if (c == '+') {
             matrix_sf *mat2 = stack[stack_top--];
             matrix_sf *mat1 = stack[stack_top--];
             matrix_sf *sum_matrix = add_mats_sf(mat1, mat2);
+            // free temporary matrices
+            if (!isupper(mat1->name)) free(mat1);
+            if (!isupper(mat2->name)) free(mat2);
             stack[++stack_top] = sum_matrix;
         }
     }
@@ -346,10 +351,19 @@ matrix_sf *execute_script_sf(char *filename) {
         root = insert_bst_sf(last_matrix, root);
     }
 
+    // make a copy of the last matrix so that we can free the bst without losing the result
+    matrix_sf *result = NULL;
+    if (last_matrix != NULL) {
+        size_t matrix_size = sizeof(matrix_sf) + last_matrix->num_rows * last_matrix->num_cols * sizeof(int);
+        result = malloc(matrix_size);
+        memcpy(result, last_matrix, matrix_size);
+    }
+
     // free up any allocated memory and close the file and return the last matrix
+    free_bst_sf(root);
     free(line);
     fclose(file);
-    return last_matrix;
+    return result;
 }
 
 // This is a utility function used during testing. Feel free to adapt the code to implement some of
